@@ -30,19 +30,8 @@ def parse_opts():
                         help='resume from model stored')
     parser.add_argument('--cnn_feat_w', type=int, default=5,
                         help='resume from model stored')
-    
-    #--------------------------------------------------------------------------
-    # RN cfg
-    #--------------------------------------------------------------------------
-    parser.add_argument('--exp_id', type=str,
-                        help='experiment id')
-    parser.add_argument('--data_dir', type=str, default='./data/sort-of-clevr.pickle',
-                        help='dataset directory')
-    parser.add_argument('--num_workers', type=int, default=20, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--phase', type=str,
-                        help='input batch size for training (default: 64)')
-    
+    parser.add_argument('--extract_manifold_source', action='store_true', default=False,
+                        help='resume from model stored')
     parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=20, metavar='N',
@@ -59,6 +48,20 @@ def parse_opts():
                         help='random seed (default: 1)')
     parser.add_argument('--resume_ckpt', type=str, default=None,
                         help='random seed (default: 1)')
+    parser.add_argument('--phase', type=str,
+                        help='input batch size for training (default: 64)')
+    parser.add_argument('--data_dir', type=str, default='./data/sort-of-clevr.pickle',
+                        help='dataset directory')
+    
+    
+    #--------------------------------------------------------------------------
+    # RN cfg
+    #--------------------------------------------------------------------------
+    parser.add_argument('--exp_id', type=str,
+                        help='experiment id')
+    parser.add_argument('--num_workers', type=int, default=20, metavar='N',
+                        help='input batch size for training (default: 64)')
+    
     
     parser.add_argument('--use_mlp_bn', action="store_true", default=False,
                         help='random seed (default: 1)')

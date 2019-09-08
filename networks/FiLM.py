@@ -47,10 +47,10 @@ class FiLM_Generator(nn.Module):
         
 
 class FiLMed_ResBlock(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, ch_i):
         super(FiLMed_ResBlock, self).__init__()
         ch = args.film_module_dim
-        self.conv1 = nn.Conv2d(ch + 2, ch, kernel_size=1)
+        self.conv1 = nn.Conv2d(ch_i + 2, ch, kernel_size=1)
         self.relu1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(ch, ch, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(ch, affine=False)
@@ -120,7 +120,12 @@ class FiLMed_Network(nn.Module):
     def __init__(self, args):
         super(FiLMed_Network, self).__init__()
         # FiLMed resblock
-        self.film_resblocks = nn.ModuleList([FiLMed_ResBlock(args) for _ in range(args.film_num_module)])
+        self.film_resblocks = nn.ModuleList()
+        for idx in range(args.film_num_module):
+            if idx == 0:
+                self.film_resblocks.append(FiLMed_ResBlock(args, ch_i=int(args.film_cnn_chs.split(",")[-1])))
+            else:
+                self.film_resblocks.append(FiLMed_ResBlock(args, ch_i=args.film_module_dim))
         # classifier
         self.classifier = Classifier(args)
         # positional encoding
@@ -161,34 +166,22 @@ class FiLM(nn.Module):
         # FiLM-ed Network
         self.filmed_network = FiLMed_Network(args)
         # weight initialization
-        #initialize(self.modules())
         weight_init(self.modules())
         # model device cfg
         self.to(args.device)
         
-    def forward(self, img, qst):
+    def forward(self, img, qst, debug=False):
         film_params = self.film_generator(qst)
         cnn_feat = self.cnn(img)
         cls_prob = self.filmed_network(cnn_feat, film_params)
-        return cls_prob
+        if debug:
+            return cls_prob, film_params
+        else:
+            return cls_prob, None
     
     def loss(self, pred, target):
         return F.nll_loss(pred, target)
     
-    
-def initialize(modules, init_type='uniform'):
-    if init_type.lower() == 'normal':
-        init_params = kaiming_normal
-    elif init_type.lower() == 'uniform':
-        init_params = kaiming_uniform
-    else:
-        print("ERROR: not supproted type of initialization.")
-        return
-    
-    for m in modules:
-        if isinstance(m, (nn.Conv2d, nn.Linear)):
-            init_params(m.weight)
-        
         
         
         

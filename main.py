@@ -16,6 +16,7 @@ from dataset import get_dataset
 from opts import parse_opts
 from networks.RN import RN
 from networks.FiLM import FiLM
+from utils import Manifold_handler
 import pdb
 
 
@@ -28,7 +29,26 @@ def eval_accuracy(pred, ans, sum_only=False):
         return hit_sum * 100 / len(ans)
         
         
-def train(args, model, optimizer, train_loader, val_loader, scheduler):
+def train(args, model, train_loader, val_loader):
+    
+    model.train()
+    
+    # optimizer
+    learning_rate = args.lr
+    if args.optimizer.lower() == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    print("Optimizer: ", optimizer)
+    
+    
+    # LR scheduling
+    if args.multi_step:
+        milestones = [int(s) for s in args.multi_step.split(",")]
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=args.lr_gamma)
+    else:
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.lr_gamma)
+    
     
     # exp directory
     if args.phase == 'train':
@@ -49,8 +69,6 @@ def train(args, model, optimizer, train_loader, val_loader, scheduler):
     else:
         resume_epoch = 1
     
-    model.train()
-    
     num_gpu = torch.cuda.device_count()
     iteration = 0
     for epoch in range(resume_epoch, args.epochs+1):
@@ -69,7 +87,7 @@ def train(args, model, optimizer, train_loader, val_loader, scheduler):
                 qst = qst.to(args.device)
                 ans = ans.to(args.device)
             
-            pred = model(img, qst)
+            pred, _ = model(img, qst)
             if num_gpu > 1:
                 loss = model.module.loss(pred, ans)
             else:
@@ -90,7 +108,7 @@ def train(args, model, optimizer, train_loader, val_loader, scheduler):
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
-            }, os.path.join(exp_path, "RN_epoch_{:02d}.pth".format(epoch)))
+            }, os.path.join(exp_path, args.model+"_epoch_{:02d}.pth".format(epoch)))
         print("model at {}-epoch is saved".format(epoch))
         
         # test every epoch
@@ -102,6 +120,15 @@ def train(args, model, optimizer, train_loader, val_loader, scheduler):
 def test(args, model, val_loader):
     model.eval()
     
+    # extracting tSNE source
+    if args.phase == "test" and args.extract_manifold_source:
+        manifold_handler = Manifold_handler(args)
+        debug = True
+    else:
+        manifold_handler = None
+        debug = False
+        
+    # evaluation
     acc_sum_rel = 0
     acc_sum_nonrel = 0
     acc_len_rel = 0
@@ -123,25 +150,38 @@ def test(args, model, val_loader):
             qst_nonrel = qst_nonrel.to(args.device)
             ans_nonrel = ans_nonrel.to(args.device)
         
-        pred_rel = model(img_rel, qst_rel)
-        pred_nonrel = model(img_nonrel, qst_nonrel)
+        pred_rel, model_param_rel = model(img_rel, qst_rel, debug)
+        pred_nonrel, model_param_nonrel = model(img_nonrel, qst_nonrel, debug)
         
         acc_sum_rel += eval_accuracy(pred_rel, ans_rel, sum_only=True)
         acc_sum_nonrel += eval_accuracy(pred_nonrel, ans_nonrel, sum_only=True)
         acc_len_rel += pred_rel.shape[0]
         acc_len_nonrel += pred_nonrel.shape[0]
         
+        # manifold source accumulate
+        if manifold_handler:
+            manifold_src = {
+                "qst_rel":qst_rel,
+                "qst_nonrel":qst_nonrel,
+                "model_param_rel":model_param_rel,
+                "model_param_nonrel":model_param_nonrel,
+                }
+            manifold_handler.accumulate(manifold_src)
+        
     val_acc_rel = acc_sum_rel * 100 / acc_len_rel
     val_acc_nonrel = acc_sum_nonrel * 100 / acc_len_nonrel
     print('\n[val] Rel-Acc: {:.0f}% | Non-Rel-Acc: {:.0f}%\n'.format(val_acc_rel, val_acc_nonrel))
-
+    
+    # manifold source save
+    if manifold_handler:
+        manifold_handler.terminate()
 
 def main(args):
     
     # device setting
     args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # model
+    # build model
     if args.model == "RN":
         model = RN(args)
     elif args.model == "FiLM":
@@ -159,30 +199,15 @@ def main(args):
     train_loader = DataLoader(train_set, args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_loader = DataLoader(val_set, args.batch_size, shuffle=False, num_workers=args.num_workers)
     
-    # optimizer
-    learning_rate = args.lr
-    if args.optimizer.lower() == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    elif args.optimizer.lower() == "sgd":
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    print("Optimizer: ", optimizer)
-    
-    # LR scheduling
-    if args.multi_step:
-        milestones = [int(s) for s in args.multi_step.split(",")]
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=args.lr_gamma)
-    else:
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.lr_gamma)
-    
     # train / test
     if args.phase == "train":
-        model = train(args, model, optimizer, train_loader, val_loader, scheduler)
+        model = train(args, model, train_loader, val_loader)
         print("Training is done!")
     elif args.phase == "test":
         if args.checkpoint:
             checkpoint = torch.load(args.checkpoint)
-            model.load_state_dict(checkpoint)
-            print("model checkpoint loaded: {}".format(args.checkpoint))
+            model.load_state_dict(checkpoint['model_state_dict'])
+            print("model loaded from a checkpoint: {}".format(args.checkpoint))
             test(args, model, val_loader)
             print("Testing is done!")
         else:

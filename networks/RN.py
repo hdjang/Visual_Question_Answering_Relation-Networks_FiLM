@@ -112,7 +112,7 @@ class RN(nn.Module):
         coords = torch.from_numpy(coords).float().to(args.device)
         return coords
 
-    def forward(self, img, qst):
+    def forward(self, img, qst, debug=False):
         # img encoding w/ positional encoding
         x = self.cnn(img)
         x = torch.cat([x, self.pos.repeat(x.shape[0],1,1,1)], dim=1)
@@ -150,9 +150,13 @@ class RN(nn.Module):
         
         # classifier
         x = self.classifier(x)
+        cls_prob = F.log_softmax(x, dim=1)
         
-        return F.log_softmax(x, dim=1)
-    
+        if debug:
+            return cls_prob, rn_params
+        else:
+            return cls_prob, None
+        
     def loss(self, pred, target):
         return F.nll_loss(pred, target)    
         

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "main.py", line 222, in <module>
+    main(args)
+  File "main.py", line 204, in main
+    model = train(args, model, train_loader, val_loader)
+  File "main.py", line 90, in train
+    pred, _ = model(img, qst)
+ValueError: too many values to unpack (expected 2)
