@@ -11,6 +11,7 @@ from sklearn.manifold import TSNE
 from matplotlib import pyplot as plt
 import numpy as np
 import pickle
+import time
 
 import pdb
 
@@ -49,11 +50,45 @@ def draw_tSNE(data, label, label_names, num_axis=2, figsize=(9,6)):
     plt.legend()
     plt.show()
     
+
+
+class Timer(object):
+    """A simple timer."""
+    def __init__(self):
+        self.total_time = 0.
+        self.calls = 0
+        self.start_time = 0.
+        self.diff = 0.
+        self.average_time = 0.
+
+    def tic(self):
+        # using time.time instead of time.clock because time time.clock
+        # does not normalize for multithreading
+        self.start_time = time.time()
+
+    def toc(self, average=True):
+        self.diff = time.time() - self.start_time
+        self.total_time += self.diff
+        self.calls += 1
+        self.average_time = self.total_time / self.calls
+        if average:
+            return self.average_time
+        else:
+            return self.diff
+
+    def clear(self):
+        self.total_time = 0.
+        self.calls = 0
+        self.start_time = 0.
+        self.diff = 0.
+        self.average_time = 0.
+        
+        
     
 class Manifold_handler:
     def __init__(self, args):
         self.args = args
-        self.save_path = os.path.join(*args.checkpoint.split("/")[:-1]) + "/manifold_src.pickle"
+        self.save_path = os.path.join(*args.checkpoint.split("/")[:-1]) + "/{}_manifold_src.pickle".format(args.model)
         if args.model == "FiLM":
             self.manifold_src = {
                 "gamma_1":[],

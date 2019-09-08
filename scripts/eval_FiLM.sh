@@ -3,7 +3,7 @@ python main.py  --exp_id      -                \
                 --model       FiLM             \
                 --phase       test             \
                 --num_workers 40               \
-                --batch_size  64               \
+                --batch_size  128              \
                 \
                 --checkpoint  './model/FiLM.pth' \
                 

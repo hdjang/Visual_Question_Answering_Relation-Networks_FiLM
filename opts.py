@@ -52,6 +52,8 @@ def parse_opts():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--data_dir', type=str, default='./data/sort-of-clevr.pickle',
                         help='dataset directory')
+    parser.add_argument('--skip_train_eval', action='store_true', default=False,
+                        help='disables CUDA training')
     
     
     #--------------------------------------------------------------------------
