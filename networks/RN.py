@@ -84,11 +84,45 @@ class RN_F(nn.Module):
         
     def forward(self, x):
         return self.rn_f(x)
-
+    
+    
+class RefFinder(nn.Module):
+    def __init__(self, args):
+        super(RefFinder, self).__init__()
+        chs = args.cnn_chs.split(",")
+        chs = [int(ch) for ch in chs]
+        ch_i = chs[-1]
+        self.finder = nn.Sequential(
+            nn.Conv2d(ch_i+args.qst_dim, 1, 1, stride=1, bias=False),
+            nn.BatchNorm2d(1),
+            nn.ReLU(inplace=True)
+        )
+            
+    def forward(self, cnn_feat, qst):
+        
+        # get soft-attention
+        x = torch.cat([cnn_feat, qst.unsqueeze(2).unsqueeze(2).repeat(1,1,cnn_feat.shape[2],cnn_feat.shape[3])], dim=1)
+        x = self.finder(x)
+        N,C,H,W = x.shape
+        x = x.view(N,-1)
+        x = F.softmax(x, dim=1)
+        x = x.view(N,C,H,W)
+        
+        # get max-index
+        ref_idx = torch.max(x.view(N,-1), dim=1)[1] # (N)
+        
+        # get reference point
+        ref = (cnn_feat * x)
+        ref = ref.view(N,ref.shape[1],-1)
+        ref = ref.sum(dim=2)
+        
+        return ref, ref_idx
+        
     
 class RN(nn.Module):
     def __init__(self, args):
         super(RN, self).__init__()
+        self.args = args
         self.cnn = CNN(args) # (N,C,H,W)
         self.pos = self.get_positional_encoding(args) # (1,2,H,W)
         self.rn_g = RN_G(args)
@@ -96,6 +130,9 @@ class RN(nn.Module):
         cls_ch = args.rn_f_chs.split(",")[-1]
         cls_ch = int(cls_ch[:-1]) if cls_ch[-1].lower() == "d" else int(cls_ch)
         self.classifier = nn.Linear(cls_ch, args.num_cat)
+        if args.rn_extension:
+            self.ref_finder = RefFinder(args)
+        
         weight_init(self.modules())
         self.to(args.device)
         
@@ -115,25 +152,41 @@ class RN(nn.Module):
     def forward(self, img, qst, debug=False):
         # img encoding w/ positional encoding
         x = self.cnn(img)
+            
+        if self.args.rn_extension:
+            ref, ref_idx = self.ref_finder(x, qst)  # (N,C), (N)
+            
         x = torch.cat([x, self.pos.repeat(x.shape[0],1,1,1)], dim=1)
         N,C,H,W = x.shape
         
-        # edge generation
-        x = x.permute(0,2,3,1)
-        x = x.view(N,-1,C) # (N,HW,C)
-        
-        x_i = x.unsqueeze(2) # (N,HW,1,C)
-        x_i = x_i.repeat(1,1,H*W,1) # (N,HW,HW,C); each-cell
-        
-        x_j = x.unsqueeze(1) # (N,1,HW,C)
-        x_j = x_j.repeat(1,H*W,1,1) # (N,HW,HW,C); all-cell
-        
-        x = torch.cat([x_i, x_j], dim=3)
-        x = x.view(N,-1,C*2)
+        if self.args.rn_extension:
+            # ref point w/ positional encoding
+            x_pos = self.pos[:,0,:,:].view(-1)[ref_idx].unsqueeze(1)
+            y_pos = self.pos[:,1,:,:].view(-1)[ref_idx].unsqueeze(1)
+            ref = torch.cat([ref, x_pos, y_pos], dim=1)
+            
+            # edge generation
+            ref = ref.unsqueeze(2).unsqueeze(2).repeat(1,1,x.shape[2],x.shape[3])
+            x = torch.cat([ref, x], dim=1)
+            x = x.view(N,x.shape[1],-1).transpose(2,1)
+            
+        else:
+            # edge generation
+            x = x.permute(0,2,3,1)
+            x = x.view(N,-1,C) # (N,HW,C)
+
+            x_i = x.unsqueeze(2) # (N,HW,1,C)
+            x_i = x_i.repeat(1,1,H*W,1) # (N,HW,HW,C); each-cell
+
+            x_j = x.unsqueeze(1) # (N,1,HW,C)
+            x_j = x_j.repeat(1,H*W,1,1) # (N,HW,HW,C); all-cell
+
+            x = torch.cat([x_i, x_j], dim=3)
+            x = x.view(N,-1,C*2)
         
         # edge conditioning w/ question
         qst = qst.unsqueeze(1)
-        qst = qst.repeat(1,(H*W)**2,1)
+        qst = qst.repeat(1,x.shape[1],1)
         
         x = torch.cat([x, qst], dim=2)
         

@@ -27,7 +27,7 @@ def eval_accuracy(pred, ans, sum_only=False):
     if sum_only:
         return hit_sum
     else:
-        return hit_sum * 100 / len(ans)
+        return hit_sum * 100.0 / len(ans)
         
         
 def train(args, model, train_loader, val_loader):
@@ -187,9 +187,9 @@ def test(args, model, val_loader):
             
         print("[val] iter: {} | batch-size: {} | time: {:.5f}".format(iteration, args.batch_size, forward_time))
         
-    val_acc_rel = acc_sum_rel * 100 / acc_len_rel
-    val_acc_nonrel = acc_sum_nonrel * 100 / acc_len_nonrel
-    print('\n[val] Rel-Acc: {:.0f}% | Non-Rel-Acc: {:.0f} | time: {:.5f} %\n'.format(val_acc_rel, val_acc_nonrel, forward_time))
+    val_acc_rel = acc_sum_rel * 100.0 / acc_len_rel
+    val_acc_nonrel = acc_sum_nonrel * 100.0 / acc_len_nonrel
+    print('\n[val] Rel-Acc: {:.2f}% | Non-Rel-Acc: {:.2f} | time: {:.5f} %\n'.format(val_acc_rel, val_acc_nonrel, forward_time))
     
     # manifold source save
     if manifold_handler:

@@ -10,6 +10,10 @@ import pdb
 
 def parse_opts():
     parser = argparse.ArgumentParser(description='relation-reasoning')
+    parser.add_argument('--exp_id', type=str,
+                        help='experiment id')
+    parser.add_argument('--num_workers', type=int, default=20, metavar='N',
+                        help='input batch size for training (default: 64)')
     parser.add_argument('--model', type=str, choices=['RN', 'FiLM'], 
                         help='model type')
     parser.add_argument('--weight_decay', default=0, type=float,
@@ -54,33 +58,27 @@ def parse_opts():
                         help='dataset directory')
     parser.add_argument('--skip_train_eval', action='store_true', default=False,
                         help='disables CUDA training')
-    
-    
-    #--------------------------------------------------------------------------
-    # RN cfg
-    #--------------------------------------------------------------------------
-    parser.add_argument('--exp_id', type=str,
-                        help='experiment id')
-    parser.add_argument('--num_workers', type=int, default=20, metavar='N',
-                        help='input batch size for training (default: 64)')
-    
-    
-    parser.add_argument('--use_mlp_bn', action="store_true", default=False,
-                        help='random seed (default: 1)')
-    
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='resume from model stored')
     parser.add_argument('--device', type=str, default=None,
                         help='resume from model stored')
     parser.add_argument('--qst_dim', type=int, default=11,
                         help='resume from model stored')
+    parser.add_argument('--no_img_norm', action='store_true', default=False,
+                        help='resume from model stored')
+    
+    #--------------------------------------------------------------------------
+    # RN cfg
+    #--------------------------------------------------------------------------
+    parser.add_argument('--use_mlp_bn', action="store_true", default=False,
+                        help='random seed (default: 1)')
     parser.add_argument('--cnn_chs', type=str, default="32,64,128,256",
                         help='resume from model stored')
     parser.add_argument('--rn_g_chs', type=str, default="2000,2000,2000,2000",
                         help='resume from model stored')
     parser.add_argument('--rn_f_chs', type=str, default="2000,1000,500,100",
                         help='resume from model stored')
-    parser.add_argument('--no_img_norm', action='store_true', default=False,
+    parser.add_argument('--rn_extension', action='store_true', default=False,
                         help='resume from model stored')
     
     

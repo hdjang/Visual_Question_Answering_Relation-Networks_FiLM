@@ -4,9 +4,9 @@ python main.py  --exp_id      rn-exp-type3   \
                 --phase       test           \
                 --num_workers 40             \
                 --epochs      40             \
-                --batch_size  64             \
+                --batch_size  128              \
                 \
-                --multi_step  15,18,20       \
+                --multi_step  15,20          \
                 --lr          0.0001         \
                 --lr_max      0.01           \
                 --lr_gamma    2              \
@@ -15,5 +15,5 @@ python main.py  --exp_id      rn-exp-type3   \
                 --rn_g_chs    512,512          \
                 --rn_f_chs    512,512          \
                 \
-                --checkpoint  './exp/rn-exp-type3/RN_epoch_35-93acc.pth' \
+                --checkpoint  './exp/rn-exp-type3/RN_epoch_35.pth' \
                 #>./log/rn-exp-type3
