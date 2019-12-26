@@ -40,7 +40,7 @@ For evaluation, trained model-weights should be located at "./models/here".
 
 ## Benchmark
 
-Below is benchmark results. All models are trained with an image-size of 400 and reduced LR-schedule for efficient experiments. Reproduced results show a similar aspect to the original paper (Table 1,2), demonstrating sanity of the implementation.
+Below is benchmark result. For fair comparison on relational reasoning ability, I used same CNN visual feature extractor for both models. 
 
 |  models | #param | Accuracy (relational qst)[%] | Accuracy (non-relational qst)[%] |
 |:------: | :----: |:----:  | :----:  |
