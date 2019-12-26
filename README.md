@@ -38,7 +38,7 @@ For evaluation, trained model-weights should be located at "./models/here".
 ```
 
 
-## Benchmark
+## Benchmark (Sort-of-CLEVR)
 
 Below is benchmark result. For fair comparison on relational reasoning ability, I used same CNN visual feature extractor for both models. 
 
