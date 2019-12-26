@@ -42,10 +42,10 @@ For evaluation, trained model-weights should be located at "./models/here".
 
 Below is benchmark results. All models are trained with an image-size of 400 and reduced LR-schedule for efficient experiments. Reproduced results show a similar aspect to the original paper (Table 1,2), demonstrating sanity of the implementation.
 
-|  model        | Accuracy (relational qst)[%] | Accuracy (non-relational qst)[%] |
-|:----------:   | :-----:  | :-----: |
-| RNs           |   92     |  99     | 
-| FiLM          |   94     |  99     |
+|  models | #param | Accuracy (relational qst)[%] | Accuracy (non-relational qst)[%] |
+|:------: | :----: |:----:  | :----:  |
+| RNs     |  1.38M |   92   |   99    | 
+| FiLM    |  1.72M |   94   |   99    |
 
 
 ## Contact
