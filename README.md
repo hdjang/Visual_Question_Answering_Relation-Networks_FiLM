@@ -50,6 +50,5 @@ Below is benchmark result. For fair comparison on relational reasoning ability, 
 
 ## Contact
 
-- Ho-Deok Jang
-- Email: jhodeok@gmail.ac.kr
-- Homepage: https://sites.google.com/view/hdjangcv
+- Hodeok Jang
+- Email: openhd34@gmail.com
